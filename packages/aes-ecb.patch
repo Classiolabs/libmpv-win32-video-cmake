@@ -1,0 +1,161 @@
+diff --git a/libavformat/crypto.c b/libavformat/crypto.c
+index 868f6dd..25e0684 100644
+--- a/libavformat/crypto.c
++++ b/libavformat/crypto.c
+@@ -52,6 +52,7 @@ typedef struct CryptoContext {
+     uint8_t *encrypt_iv;
+     int encrypt_ivlen;
+     struct AVAES *aes_decrypt;
++    int ecb;
+     struct AVAES *aes_encrypt;
+     uint8_t *write_buf;
+     unsigned int write_buf_size;
+@@ -63,6 +64,7 @@ typedef struct CryptoContext {
+ #define D AV_OPT_FLAG_DECODING_PARAM
+ #define E AV_OPT_FLAG_ENCODING_PARAM
+ static const AVOption crypto_options[] = {
++    {"ecb", "use AES-ECB (no IV)", OFFSET(ecb), AV_OPT_TYPE_BOOL, {.i64 = 0}, 0, 1, AV_OPT_FLAG_DECODING_PARAM },
+     {"key", "AES encryption/decryption key",                   OFFSET(key),         AV_OPT_TYPE_BINARY, .flags = D|E },
+     {"iv",  "AES encryption/decryption initialization vector", OFFSET(iv),          AV_OPT_TYPE_BINARY, .flags = D|E },
+     {"decryption_key", "AES decryption key",                   OFFSET(decrypt_key), AV_OPT_TYPE_BINARY, .flags = D },
+@@ -106,6 +108,38 @@ static int set_aes_arg(URLContext *h, uint8_t **buf, int *buf_len,
+     return 0;
+ }
+ 
++
++static int set_aes_key_arg(URLContext *h, uint8_t **buf, int *buf_len,
++                           uint8_t *default_buf, int default_buf_len)
++{
++    if (!*buf_len) {
++        if (default_buf_len != 16 && default_buf_len != 24 && default_buf_len != 32) {
++            av_log(h, AV_LOG_ERROR, "invalid decryption key size (%d bytes)\n", default_buf_len);
++            return AVERROR(EINVAL);
++        }
++        *buf = av_memdup(default_buf, default_buf_len);
++        if (!*buf)
++            return AVERROR(ENOMEM);
++        *buf_len = default_buf_len;
++    } else if (*buf_len != 16 && *buf_len != 24 && *buf_len != 32) {
++        av_log(h, AV_LOG_ERROR, "invalid decryption key size (%d bytes)\n", *buf_len);
++        return AVERROR(EINVAL);
++    }
++    return 0;
++}
++
++/* ECB has no IV. Allocate a zeroed buffer so seek code never touches NULL. */
++static int crypto_ecb_dummy_iv(CryptoContext *c)
++{
++    if (!c->decrypt_iv) {
++        c->decrypt_iv = av_mallocz(BLOCKSIZE);
++        if (!c->decrypt_iv)
++            return AVERROR(ENOMEM);
++        c->decrypt_ivlen = BLOCKSIZE;
++    }
++    return 0;
++}
++
+ static int crypto_open2(URLContext *h, const char *uri, int flags, AVDictionary **options)
+ {
+     const char *nested_url;
+@@ -121,11 +155,10 @@ static int crypto_open2(URLContext *h, const char *uri, int flags, AVDictionary
+     }
+ 
+     if (flags & AVIO_FLAG_READ) {
+-        if ((ret = set_aes_arg(h, &c->decrypt_key, &c->decrypt_keylen,
+-                               c->key, c->keylen, "decryption key")) < 0)
++        if ((ret = set_aes_key_arg(h, &c->decrypt_key, &c->decrypt_keylen, c->key, c->keylen)) < 0)
+             goto err;
+-        if ((ret = set_aes_arg(h, &c->decrypt_iv, &c->decrypt_ivlen,
+-                               c->iv, c->ivlen, "decryption IV")) < 0)
++        if ((ret = (c->ecb ? crypto_ecb_dummy_iv(c) : set_aes_arg(h, &c->decrypt_iv, &c->decrypt_ivlen,
++                               c->iv, c->ivlen, "decryption IV"))) < 0)
+             goto err;
+     }
+ 
+@@ -152,7 +185,7 @@ static int crypto_open2(URLContext *h, const char *uri, int flags, AVDictionary
+             ret = AVERROR(ENOMEM);
+             goto err;
+         }
+-        ret = av_aes_init(c->aes_decrypt, c->decrypt_key, BLOCKSIZE * 8, 1);
++        ret = av_aes_init(c->aes_decrypt, c->decrypt_key, c->decrypt_keylen * 8, 1);
+         if (ret < 0)
+             goto err;
+ 
+@@ -211,7 +244,7 @@ retry:
+     if (!c->eof)
+         blocks--;
+     av_aes_crypt(c->aes_decrypt, c->outbuffer, c->inbuffer + c->indata_used,
+-                 blocks, c->decrypt_iv, 1);
++                 blocks, (c->ecb ? NULL : c->decrypt_iv), 1);
+     c->outdata      = BLOCKSIZE * blocks;
+     c->outptr       = c->outbuffer;
+     c->indata_used += BLOCKSIZE * blocks;
+@@ -369,6 +402,11 @@ static int crypto_write(URLContext *h, const unsigned char *buf, int size)
+ static int crypto_close(URLContext *h)
+ {
+     CryptoContext *c = h->priv_data;
++    if (c->decrypt_key && c->decrypt_keylen > 0)
++        memset(c->decrypt_key, 0, c->decrypt_keylen);
++    if (c->key && c->keylen > 0)
++        memset(c->key, 0, c->keylen);
++
+     int ret = 0;
+ 
+     if (c->aes_encrypt) {
+diff --git a/libavformat/hls.c b/libavformat/hls.c
+index 71b24b2..2555ce4 100644
+--- a/libavformat/hls.c
++++ b/libavformat/hls.c
+@@ -204,6 +204,7 @@ struct variant {
+ 
+ typedef struct HLSContext {
+     AVClass *class;
++    char *aes_ecb_key;
+     AVFormatContext *ctx;
+     int n_variants;
+     struct variant **variants;
+@@ -1391,7 +1392,25 @@ static int open_input(HLSContext *c, struct playlist *pls, struct segment *seg,
+         }
+     }
+ 
+-    if (seg->key_type == KEY_AES_128) {
++    if (seg->key_type == KEY_NONE && c->aes_ecb_key && c->aes_ecb_key[0]) {
++        char url[MAX_URL_SIZE];
++        size_t klen = strlen(c->aes_ecb_key);
++        if (klen != 32 && klen != 48 && klen != 64) {
++            av_log(pls->parent, AV_LOG_ERROR, "aes_ecb_key must be 32/48/64 hex chars\n");
++            ret = AVERROR(EINVAL);
++            goto cleanup;
++        }
++        if (strstr(seg->url, "://"))
++            snprintf(url, sizeof(url), "crypto+%s", seg->url);
++        else
++            snprintf(url, sizeof(url), "crypto:%s", seg->url);
++        av_dict_set(&opts, "key", c->aes_ecb_key, 0);
++        av_dict_set(&opts, "ecb", "1", 0);
++        ret = open_url(pls->parent, in, url, &c->avio_opts, opts, &is_http);
++        if (ret < 0)
++            goto cleanup;
++        ret = 0;
++    } else if (seg->key_type == KEY_AES_128) {
+         char iv[33], key[33], url[MAX_URL_SIZE];
+         ff_data_to_hex(iv, seg->iv, sizeof(seg->iv), 0);
+         ff_data_to_hex(key, pls->key, sizeof(pls->key), 0);
+@@ -1987,6 +2006,8 @@ static void update_noheader_flag(AVFormatContext *s)
+ static int hls_close(AVFormatContext *s)
+ {
+     HLSContext *c = s->priv_data;
++    if (c->aes_ecb_key)
++        memset(c->aes_ecb_key, 0, strlen(c->aes_ecb_key));
+ 
+     free_playlist_list(c);
+     free_variant_list(c);
+@@ -2669,6 +2690,8 @@ static int hls_probe(const AVProbeData *p)
+ #define OFFSET(x) offsetof(HLSContext, x)
+ #define FLAGS AV_OPT_FLAG_DECODING_PARAM
+ static const AVOption hls_options[] = {
++    {"aes_ecb_key", "hex AES key: decrypt every segment with AES-ECB/PKCS7",
++        OFFSET(aes_ecb_key), AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, FLAGS},
+     {"live_start_index", "segment index to start live streams at (negative values are from the end)",
+         OFFSET(live_start_index), AV_OPT_TYPE_INT, {.i64 = -3}, INT_MIN, INT_MAX, FLAGS},
+     {"prefer_x_start", "prefer to use #EXT-X-START if it's in playlist instead of live_start_index",
