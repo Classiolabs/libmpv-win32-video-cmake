@@ -19,6 +19,8 @@ ExternalProject_Add(mpv
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_TAG v0.39.0
     PATCH_COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
+          COMMAND ${EXEC} sed -i "s/!HAVE_DXGI_DEBUG_D3D11/0/" <SOURCE_DIR>/video/out/gpu/d3d11_helpers.h
+          COMMAND ${EXEC} sed -i "s/EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE/0x3207/" <SOURCE_DIR>/video/out/opengl/context_angle.c
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${MINGW_INSTALL_PREFIX}
@@ -44,7 +46,7 @@ ExternalProject_Add(mpv
         -Dvulkan=disabled
         -Dvapoursynth=disabled
         ${mpv_gl}
-        "-Dc_args=-Wno-error=int-conversion -DHAVE_DXGI_DEBUG_D3D11=1 -DEGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE=0x3207"
+        -Dc_args='-Wno-error=int-conversion'
     BUILD_COMMAND ${EXEC} LTO_JOB=1 PDB=1 ninja -C <BINARY_DIR>
     INSTALL_COMMAND ""
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
