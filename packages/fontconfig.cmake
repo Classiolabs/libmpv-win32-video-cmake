@@ -7,8 +7,7 @@ ExternalProject_Add(fontconfig
     GIT_REPOSITORY https://gitlab.freedesktop.org/fontconfig/fontconfig.git
     SOURCE_DIR ${SOURCE_LOCATION}
     UPDATE_COMMAND ""
-    GIT_REMOTE_NAME origin
-    GIT_TAG main
+    GIT_TAG 2.17.1
     GIT_CLONE_FLAGS "--filter=tree:0"
     PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/fontconfig-*.patch
     CONFIGURE_COMMAND ""
