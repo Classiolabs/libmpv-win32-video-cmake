@@ -44,7 +44,7 @@ ExternalProject_Add(mpv
         -Dvulkan=disabled
         -Dvapoursynth=disabled
         ${mpv_gl}
-        -Dc_args='-Wno-error=int-conversion'
+        "-Dc_args=-Wno-error=int-conversion -DHAVE_DXGI_DEBUG_D3D11=1 -DEGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE=0x3207"
     BUILD_COMMAND ${EXEC} LTO_JOB=1 PDB=1 ninja -C <BINARY_DIR>
     INSTALL_COMMAND ""
     LOG_DOWNLOAD 1 LOG_UPDATE 1 LOG_CONFIGURE 1 LOG_BUILD 1 LOG_INSTALL 1
