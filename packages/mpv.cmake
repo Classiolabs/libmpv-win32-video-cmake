@@ -21,6 +21,7 @@ ExternalProject_Add(mpv
     PATCH_COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
           COMMAND ${EXEC} sed -i "s/!HAVE_DXGI_DEBUG_D3D11/0/" <SOURCE_DIR>/video/out/gpu/d3d11_helpers.h
           COMMAND ${EXEC} sed -i "s/EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE/0x3207/" <SOURCE_DIR>/video/out/opengl/context_angle.c
+          COMMAND sh -c "cat '${CMAKE_CURRENT_SOURCE_DIR}/mpv-osd-stubs.c.in' >> '<SOURCE_DIR>/sub/osd.c'"
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ${EXEC} CONF=1 meson setup <BINARY_DIR> <SOURCE_DIR>
         --prefix=${MINGW_INSTALL_PREFIX}
