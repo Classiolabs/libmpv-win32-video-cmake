@@ -8,11 +8,13 @@ ExternalProject_Add(libdovi
     UPDATE_COMMAND ""
     PATCH_COMMAND ""
     CONFIGURE_COMMAND ""
+    # No ${cargo_lto_rustflags} here: rustc embeds LLVM bitcode from its own
+    # (newer) LLVM, which the older clang/lld toolchain cannot read at link
+    # time ("Unknown attribute kind"). Building native objects avoids that.
     BUILD_COMMAND ${EXEC}
         LD_PRELOAD=
         CARGO_BUILD_TARGET_DIR=<BINARY_DIR>
         CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1
-        ${cargo_lto_rustflags}
         cargo cinstall
         --manifest-path <SOURCE_DIR>/dolby_vision/Cargo.toml
         --prefix ${MINGW_INSTALL_PREFIX}
