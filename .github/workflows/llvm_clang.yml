@@ -14,7 +14,7 @@ on:
 jobs:
   build_llvm:
     name: Building LLVM and Clang
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, mpvbuild]
     env:
       CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     strategy:
@@ -207,7 +207,7 @@ jobs:
   call_workflow:
     name: Run mpv_clang
     if: false
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, mpvbuild]
     needs: build_llvm
     env:
       GH_TOKEN: ${{ github.token }}

@@ -24,7 +24,7 @@ on:
 jobs:
   build_mpv:
     name: Building mpv
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, mpvbuild]
     if: ${{ github.event.workflow_run.conclusion != 'failure' }}
     strategy:
       fail-fast: false
