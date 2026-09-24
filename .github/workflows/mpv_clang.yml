@@ -20,6 +20,15 @@ on:
         required: false
         default: false
         type: boolean
+      arch:
+        description: 'Architecture to build'
+        required: false
+        default: 'aarch64'
+        type: choice
+        options:
+          - aarch64
+          - x86_64
+          - both        
 
 jobs:
   build_mpv:
