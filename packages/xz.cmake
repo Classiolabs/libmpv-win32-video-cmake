@@ -1,5 +1,6 @@
 ExternalProject_Add(xz
-    GIT_REPOSITORY https://gitlab.com/shinchiro/xz.git
+    # Official GitHub repo (gitlab.com mirror was unreachable from the runner)
+    GIT_REPOSITORY https://github.com/tukaani-project/xz.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS ""
     UPDATE_COMMAND ""

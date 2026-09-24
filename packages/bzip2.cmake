@@ -1,5 +1,6 @@
 ExternalProject_Add(bzip2
-    GIT_REPOSITORY https://gitlab.com/bzip2/bzip2.git
+    # GitHub mirror of gitlab.com/bzip2/bzip2 (same CMake build; gitlab.com was unreachable from the runner)
+    GIT_REPOSITORY https://github.com/libarchive/bzip2.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
