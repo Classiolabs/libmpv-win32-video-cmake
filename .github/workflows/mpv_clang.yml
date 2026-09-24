@@ -32,6 +32,7 @@ jobs:
         bit: [x86_64, aarch64]
     env:
       BIT: ${{ matrix.bit }}
+      CMAKE_POLICY_VERSION_MINIMUM: "3.5"
     container:
       image: docker://ghcr.io/shinchiro/archlinux:latest
     outputs:
@@ -155,7 +156,7 @@ jobs:
 
       - name: Saving clang sysroot cache
         uses: actions/cache/save@main
-        if: ${{ always() && matrix.bit == 'x86_64' }}
+        if: ${{ success() && matrix.bit == 'x86_64' }}
         with:
           path: |
             clang_root
@@ -163,14 +164,14 @@ jobs:
 
       - name: Saving repository cache
         uses: actions/cache/save@main
-        if: ${{ always() && matrix.bit == 'x86_64' }}
+        if: ${{ success() && matrix.bit == 'x86_64' }}
         with:
           path: src_packages
           key: ${{ secrets.CACHE_VERSION }}-repository-${{ github.run_id }}
 
       - name: Saving ${{ matrix.bit }} toolchain cache
         uses: actions/cache/save@main
-        if: always()
+        if: success()
         with:
           path: |
             build_${{ matrix.bit }}
