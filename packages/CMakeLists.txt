@@ -95,9 +95,24 @@ list(APPEND ep
     libsodium
     megasdk
 )
+
+# Several packages are patched in place (git am / git apply / sed). If two
+# architectures share one source folder, the second build tries to patch
+# already-patched sources and fails. x86_64 keeps the shared folder (so its
+# existing caches stay valid); every other architecture gets a private copy
+# inside its own build directory, which is cached together with its stamps.
+if(NOT ${SINGLE_SOURCE_LOCATION} STREQUAL "")
+    if(TARGET_CPU STREQUAL "x86_64")
+        set(PACKAGES_SOURCE_ROOT "${SINGLE_SOURCE_LOCATION}")
+    else()
+        set(PACKAGES_SOURCE_ROOT "${CMAKE_BINARY_DIR}/src_packages")
+    endif()
+    message(STATUS "Package sources for ${TARGET_CPU}: ${PACKAGES_SOURCE_ROOT}")
+endif()
+
 foreach(package IN LISTS ep)
     if(NOT ${SINGLE_SOURCE_LOCATION} STREQUAL "")
-        set(SOURCE_LOCATION "${SINGLE_SOURCE_LOCATION}/${package}")
+        set(SOURCE_LOCATION "${PACKAGES_SOURCE_ROOT}/${package}")
     endif()
     include(${CMAKE_CURRENT_SOURCE_DIR}/${package}.cmake)
     set(SOURCE_LOCATION "")
