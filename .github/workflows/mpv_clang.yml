@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        bit: [x86_64, aarch64]
+        bit: ${{ fromJSON(github.event.inputs.arch == 'both' && '["x86_64","aarch64"]' || format('["{0}"]', github.event.inputs.arch || 'aarch64')) }}
     env:
       BIT: ${{ matrix.bit }}
       CMAKE_POLICY_VERSION_MINIMUM: "3.5"
