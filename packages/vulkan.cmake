@@ -5,7 +5,11 @@ ExternalProject_Add(vulkan
     GIT_CLONE_FLAGS "--filter=tree:0"
     UPDATE_COMMAND ""
     GIT_TAG v1.4.343
-    PATCH_COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-*.patch
+    # Always start from a clean v1.4.343 checkout: the update step can leave the
+    # source on another commit (or half-patched), and then `git am` fails with
+    # "sha1 information is lacking or useless / could not build fake ancestor".
+    PATCH_COMMAND ${EXEC} bash -c "git am --abort 2>/dev/null || true && (git fetch origin tag v1.4.343 --no-tags || true) && git reset --hard v1.4.343 && git clean -fd"
+          COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/vulkan-*.patch
     CONFIGURE_COMMAND ${EXEC} CONF=1 cmake -H<SOURCE_DIR> -B<BINARY_DIR>
         -G Ninja
         -DCMAKE_BUILD_TYPE=Release
