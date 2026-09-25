@@ -264,25 +264,23 @@ jobs:
       - name: Moving archives
         run: |
           mkdir -p release
-          mv release_i686/* release_x86_64/* release_x86_64_v3/* release_aarch64/* release
-          du -ah release/*
+          for d in release_i686 release_x86_64 release_x86_64_v3 release_aarch64; do
+            if [ -d "$d" ] && [ -n "$(ls -A "$d" 2>/dev/null)" ]; then
+              mv "$d"/* release/
+            fi
+          done
+          du -ah release/* || true
 
       - name: Uploading packages to Github release
         id: upload_packages_gh
         if: ${{ github.event.inputs.github_release == 'true' && github.event.inputs.mpv_tarball == 'false' }}
-        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          short_date=$(date "+%Y%m%d")
-          body=$(cat <<END
-          **Workflow run**: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID
-          END
-          )
-          id=$(curl -u media-kit:$GH_TOKEN $CURL_RETRIES -s -X POST -H "Accept: application/vnd.github.v3+json" https://api.github.com/repos/media-kit/libmpv-win32-audio-cmake/releases -d @- <<END | jq -r '.id'
-          {
-            "tag_name": "$short_date",
-            "name": "$short_date",
-            "body": "$(echo ${body//$'\n'/'\n'})"
-          }
-          END
-          )
-          for file in release/*.7z; do curl -u media-kit:$GH_TOKEN $CURL_RETRIES -X POST -H "Accept: application/vnd.github.v3+json" -H "Content-Type: $(file -b --mime-type $file)" https://uploads.github.com/repos/media-kit/libmpv-win32-audio-cmake/releases/$id/assets?name=$(basename $file) --data-binary @$file; done
+          apk add --no-cache github-cli
+          tag="$(date +%Y%m%d)-${GITHUB_RUN_NUMBER}"
+          ls release/*.7z
+          gh release create "$tag" release/*.7z \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$tag" \
+            --notes "Workflow run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
