@@ -18,7 +18,11 @@ ExternalProject_Add(mpv
     GIT_REPOSITORY https://github.com/mpv-player/mpv.git
     SOURCE_DIR ${SOURCE_LOCATION}
     GIT_TAG v0.39.0
-    PATCH_COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
+    # Always start from a clean v0.39.0 checkout: git apply, the sed edits and the
+    # OSD stub append must run on unmodified sources (otherwise the patch fails or
+    # the stubs get appended twice).
+    PATCH_COMMAND ${EXEC} bash -c "(git fetch origin tag v0.39.0 --no-tags || true) && git reset --hard v0.39.0 && git clean -fd"
+          COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
           COMMAND ${EXEC} sed -i "s/!HAVE_DXGI_DEBUG_D3D11/0/" <SOURCE_DIR>/video/out/gpu/d3d11_helpers.h
           COMMAND ${EXEC} sed -i "s/EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE/0x3207/" <SOURCE_DIR>/video/out/opengl/context_angle.c
           COMMAND sh -c "cat '${CMAKE_CURRENT_SOURCE_DIR}/mpv-osd-stubs.c.in' >> '<SOURCE_DIR>/sub/osd.c'"
