@@ -11,7 +11,8 @@ ExternalProject_Add(fontconfig
     GIT_CLONE_FLAGS "--filter=tree:0"
     # Always start from a clean 2.17.1 checkout so the patches never hit
     # already-patched or moved sources ("could not build fake ancestor").
-    PATCH_COMMAND ${EXEC} bash -c "git am --abort 2>/dev/null || true && (git fetch origin tag 2.17.1 --no-tags || true) && git reset --hard 2.17.1 && git clean -fd"
+    # Run via plain `sh -c` (not ${EXEC}), which would strip the quotes.
+    PATCH_COMMAND sh -c "git am --abort 2>/dev/null; git fetch origin tag 2.17.1 --no-tags 2>/dev/null; git reset --hard 2.17.1 && git clean -fd"
           COMMAND ${EXEC} git am --3way ${CMAKE_CURRENT_SOURCE_DIR}/fontconfig-*.patch
     CONFIGURE_COMMAND ""
     COMMAND ${EXEC} sed -i "s/both_libraries/library/g" <SOURCE_DIR>/src/meson.build

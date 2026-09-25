@@ -21,7 +21,9 @@ ExternalProject_Add(mpv
     # Always start from a clean v0.39.0 checkout: git apply, the sed edits and the
     # OSD stub append must run on unmodified sources (otherwise the patch fails or
     # the stubs get appended twice).
-    PATCH_COMMAND ${EXEC} bash -c "(git fetch origin tag v0.39.0 --no-tags || true) && git reset --hard v0.39.0 && git clean -fd"
+    # Note: run via plain `sh -c` (not ${EXEC}) because ${EXEC} re-evaluates its
+    # arguments and strips the quotes, which breaks `( ... )` and `||`.
+    PATCH_COMMAND sh -c "git am --abort 2>/dev/null; git fetch origin tag v0.39.0 --no-tags 2>/dev/null; git reset --hard v0.39.0 && git clean -fd"
           COMMAND ${EXEC} git apply ${CMAKE_CURRENT_SOURCE_DIR}/mpv-*.patch
           COMMAND ${EXEC} sed -i "s/!HAVE_DXGI_DEBUG_D3D11/0/" <SOURCE_DIR>/video/out/gpu/d3d11_helpers.h
           COMMAND ${EXEC} sed -i "s/EGL_PLATFORM_ANGLE_TYPE_D3D9_ANGLE/0x3207/" <SOURCE_DIR>/video/out/opengl/context_angle.c
