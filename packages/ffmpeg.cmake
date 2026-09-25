@@ -66,25 +66,24 @@ ExternalProject_Add(ffmpeg
         --disable-gray
         --disable-swscale-alpha
 
-        --disable-bsfs
-
         --disable-amf
         --disable-cuda
         --disable-nvdec
         --disable-nvenc
         --disable-cuvid
-        --disable-dxva2
         --disable-libmfx
-        --disable-d3d11va
         --disable-vaapi
         --disable-vdpau
         --disable-bzlib
-        --disable-libmfx
         --disable-libuavs3d
         --disable-ffnvcodec
         --disable-linux-perf
         --disable-videotoolbox
         --disable-audiotoolbox
+
+        # Windows hardware video decoding (used by mpv hwdec=d3d11va / dxva2)
+        --enable-d3d11va
+        --enable-dxva2
 
         --enable-small
         --enable-hwaccels
@@ -95,6 +94,8 @@ ExternalProject_Add(ffmpeg
         --enable-libssh
 
         --enable-libjxl
+        --enable-libdav1d
+        --enable-libxml2
 
         --enable-avutil
         --enable-avcodec
@@ -104,6 +105,7 @@ ExternalProject_Add(ffmpeg
         --enable-swscale
         --enable-swresample
 
+        # ---- audio decoders ----
         --enable-decoder=aac*
         --enable-decoder=ac3
         --enable-decoder=alac
@@ -129,9 +131,27 @@ ExternalProject_Add(ffmpeg
         --enable-decoder=pcm*
         --enable-decoder=dsd*
         --enable-decoder=dca
-        --enable-decoder=dca
         --enable-decoder=truehd
 
+        # ---- video decoders ----
+        --enable-decoder=h264
+        --enable-decoder=hevc
+        --enable-decoder=vp8
+        --enable-decoder=vp9
+        --enable-decoder=av1
+        --enable-decoder=libdav1d
+        --enable-decoder=mpeg4
+        --enable-decoder=msmpeg4*
+        --enable-decoder=h263
+        --enable-decoder=mpeg1video
+        --enable-decoder=mpeg2video
+        --enable-decoder=vc1
+        --enable-decoder=wmv*
+        --enable-decoder=theora
+        --enable-decoder=prores
+        --enable-decoder=flv
+
+        # ---- image decoders ----
         --enable-decoder=mjpeg
         --enable-decoder=ljpeg
         --enable-decoder=jpegls
@@ -141,10 +161,22 @@ ExternalProject_Add(ffmpeg
         --enable-decoder=bmp
         --enable-decoder=tiff
         --enable-decoder=webp
-        --enable-decoder=jpegls
 
+        # ---- subtitle decoders ----
+        --enable-decoder=ass
+        --enable-decoder=ssa
+        --enable-decoder=srt
+        --enable-decoder=subrip
+        --enable-decoder=webvtt
+        --enable-decoder=mov_text
+        --enable-decoder=dvbsub
+        --enable-decoder=dvdsub
+        --enable-decoder=pgssub
+
+        # ---- demuxers ----
         --enable-demuxer=aac
         --enable-demuxer=ac3
+        --enable-demuxer=eac3
         --enable-demuxer=aiff
         --enable-demuxer=ape
         --enable-demuxer=asf
@@ -152,6 +184,7 @@ ExternalProject_Add(ffmpeg
         --enable-demuxer=avi
         --enable-demuxer=flac
         --enable-demuxer=flv
+        --enable-demuxer=live_flv
         --enable-demuxer=matroska
         --enable-demuxer=mov
         --enable-demuxer=m4v
@@ -168,10 +201,29 @@ ExternalProject_Add(ffmpeg
         --enable-demuxer=xwma
         --enable-demuxer=dsf
         --enable-demuxer=dts
-        --enable-demuxer=truehd
-        --enable-demuxer=dts
         --enable-demuxer=dtshd
+        --enable-demuxer=truehd
+        --enable-demuxer=hls
+        --enable-demuxer=dash
+        --enable-demuxer=mpegts
+        --enable-demuxer=mpegps
+        --enable-demuxer=mpegvideo
+        --enable-demuxer=h264
+        --enable-demuxer=hevc
+        --enable-demuxer=ivf
+        --enable-demuxer=obu
+        --enable-demuxer=rtsp
+        --enable-demuxer=rtp
+        --enable-demuxer=sdp
+        --enable-demuxer=concat
+        --enable-demuxer=image2
+        --enable-demuxer=png_pipe
+        --enable-demuxer=mjpeg
+        --enable-demuxer=ass
+        --enable-demuxer=srt
+        --enable-demuxer=webvtt
 
+        # ---- parsers ----
         --enable-parser=aac*
         --enable-parser=ac3
         --enable-parser=cook
@@ -180,7 +232,19 @@ ExternalProject_Add(ffmpeg
         --enable-parser=mpegaudio
         --enable-parser=tak
         --enable-parser=vorbis
+        --enable-parser=opus
         --enable-parser=dca
+        --enable-parser=h264
+        --enable-parser=hevc
+        --enable-parser=vp8
+        --enable-parser=vp9
+        --enable-parser=av1
+        --enable-parser=mpeg4video
+        --enable-parser=mpegvideo
+        --enable-parser=h263
+        --enable-parser=vc1
+        --enable-parser=mjpeg
+        --enable-parser=png
 
         --enable-filter=overlay
         --enable-filter=equalizer
@@ -209,14 +273,13 @@ ExternalProject_Add(ffmpeg
         --enable-protocol=udp
 
         --enable-encoder=mjpeg
-	--enable-encoder=ljpeg
-	--enable-encoder=jpegls
-	--enable-encoder=jpeg2000
-	--enable-encoder=png
-	--enable-encoder=jpegls
+        --enable-encoder=ljpeg
+        --enable-encoder=jpegls
+        --enable-encoder=jpeg2000
+        --enable-encoder=png
 
         --enable-network
-        
+
         ${ffmpeg_cuda}
         ${ffmpeg_lto}
         --extra-cflags='-Wno-error=int-conversion'
